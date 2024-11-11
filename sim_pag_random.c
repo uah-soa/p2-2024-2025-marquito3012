@@ -91,6 +91,29 @@ void handle_page_fault(ssystem* S, unsigned virtual_addr) {
   //       Type in the code that simulates the Operating
   //       System's response to a page fault trap
   
+  S->numpagefaults++;
+  page = virtual_addr / S->pagsz;
+  if (S->detailed){
+    printf("@ PAGE FAULT in P %d\n", page);
+  }
+
+  if(S->listfree != -1){
+    // There are free frames
+    last = S->listfree;
+    frame = S->frt[last].next;
+    if (frame == last){
+      // Then, this is the last one left
+      S->listfree = -1;
+    } else {
+      // Otherwise, bypash
+      S->frt[last].next = S->frt[frame].next;
+    }
+  }else{
+    // There are no free frames
+    victim = choose_page_to_be_replaced(S);
+    replace_page(S, victim, page);
+  }
+
 }
 
 static unsigned myrandom(unsigned from,  // <<--- random
@@ -157,6 +180,11 @@ void occupy_free_frame(ssystem* S, int frame, int page) {
   //       Write the code that links the page with the frame and
   //       vice-versa, and wites the corresponding values in the
   //       state bits of the page (presence...)
+
+  S->pgt[page].present = 1;
+  S->pgt[page].frame = frame;
+  S->pgt[page].modified = 0;
+  S->frt[frame].page = page;
 }
 
 // Functions that show results
