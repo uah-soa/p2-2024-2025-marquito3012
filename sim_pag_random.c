@@ -47,6 +47,29 @@ unsigned sim_mmu(ssystem* S, unsigned virtual_addr, char op) {
   //       Type in the code that simulates the MMU's (hardware)
   //       behaviour in response to a memory access operation
 
+  page = virtual_addr / S->pagsz;
+  offset = virtual_addr % S->pagsz;
+
+  if (page <0 || page >= S->numpags) {
+    S->numillegalrefs++; // References out of range
+    return ~0U; // Return invalid physical 0xFFF..F
+  }
+
+  if (!S->pgt[page].present) {
+    // Not present: trigger page fault exception
+    handle_page_fault(S, virtual_addr);
+  }
+
+  // Now it is present
+  frame = S->pgt[page].frame;
+  physical_addr = frame * S->pagsz + offset;
+
+  reference_page(S, page, op);
+
+  if (S->detailed)
+    printf("\t %c %u==P %d(M %d)+ %d\n", op, virtual_addr, page,
+           S->pgt[page].modified, offset);
+
   return physical_addr;
 }
 
@@ -67,6 +90,7 @@ void handle_page_fault(ssystem* S, unsigned virtual_addr) {
   // TODO(student):
   //       Type in the code that simulates the Operating
   //       System's response to a page fault trap
+  
 }
 
 static unsigned myrandom(unsigned from,  // <<--- random
