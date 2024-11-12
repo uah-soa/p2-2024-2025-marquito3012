@@ -93,8 +93,8 @@ void handle_page_fault(ssystem* S, unsigned virtual_addr) {
   
   S->numpagefaults++;
   page = virtual_addr / S->pagsz;
-  if (S->detailed){
-    printf("@ PAGE FAULT in P %d\n", page);
+  if (S->detailed) {
+	  printf ("@ PAGE_FAULT in P %d!\n", page);
   }
 
   if(S->listfree != -1){
