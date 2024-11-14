@@ -1,6 +1,6 @@
 /*
     Copyright 2023 The Operating System Group at the UAH
-    sim_pag_random.c
+    sim_pag_lru.c
  */
 
 #include <stdio.h>
@@ -80,6 +80,12 @@ void reference_page(ssystem* S, int page, char op) {
     S->pgt[page].modified = 1;  // count it and mark the
     S->numrefswrite++;          // page 'modified'
   }
+  S->pgt[page].timestamp = S->clock;  // Update timestamp
+  S->clock++;                         // Advance clock
+  if(S->clock == 0){
+    // Overflow
+    printf("WARNING: Clock overflow\n");
+  }
 }
 
 // Functions that simulate the operating system
@@ -131,15 +137,21 @@ static unsigned myrandom(unsigned from,  // <<--- random
 }
 
 int choose_page_to_be_replaced(ssystem* S) {
-  int frame, victim;
+  int frame = -1, victim;
 
-  frame = myrandom(0, S->numframes);  // <<--- random
+  // implement a sequential search for the victim page with the lowest timestamp
+  for(int i = 0; i < S->numframes; i++){
+    if(frame == -1)
+      frame = i;
+    if(S->pgt[S->frt[i].page].timestamp < S->pgt[S->frt[frame].page].timestamp)
+      frame = i;
+  }
 
   victim = S->frt[frame].page;
 
   if (S->detailed)
     printf(
-        "@ Choosing (at random) P%d of F%d to be "
+        "@ Choosing (at LRU) P%d of F%d to be "
         "replaced\n",
         victim, frame);
 
@@ -192,14 +204,14 @@ void occupy_free_frame(ssystem* S, int frame, int page) {
 void print_page_table(ssystem* S) {
   int p;
 
-  printf("%10s %10s %10s   %s\n", "PAGE", "Present", "Frame", "Modified");
+  printf("%10s %10s %10s  %10s  %s\n", "PAGE", "Present", "Frame", "Modified", "Clock-timestamp");
 
   for (p = 0; p < S->numpags; p++)
     if (S->pgt[p].present)
-      printf("%8d   %6d     %8d   %6d\n", p, S->pgt[p].present, S->pgt[p].frame,
-             S->pgt[p].modified);
+      printf("%8d   %6d     %8d   %6d   %6d\n", p, S->pgt[p].present, S->pgt[p].frame,
+             S->pgt[p].modified, S->pgt[p].timestamp);
     else
-      printf("%8d   %6d     %8s   %6s\n", p, S->pgt[p].present, "-", "-");
+      printf("%8d   %6d     %8s   %6s %6s\n", p, S->pgt[p].present, "-", "-", "-");
 }
 
 void print_frames_table(ssystem* S) {
@@ -222,7 +234,20 @@ void print_frames_table(ssystem* S) {
 }
 
 void print_replacement_report(ssystem* S) {
+  int minimun_timestamp, maximun_timestamp;
+  for(int i = 0; i < S->numpags; i++){
+    if(i == 0){
+      minimun_timestamp = S->pgt[i].timestamp;
+      maximun_timestamp = S->pgt[i].timestamp;
+    }
+    if(S->pgt[i].timestamp < minimun_timestamp)
+      minimun_timestamp = S->pgt[i].timestamp;
+    if(S->pgt[i].timestamp > maximun_timestamp)
+      maximun_timestamp = S->pgt[i].timestamp;
+  }
+
+
   printf(
-      "Random replacement "
-      "(no specific information)\n");  // <<--- random
+      "LRU replacement "
+      "(Clock value: %10d, Minimun timestamp: %10d, Maximum timestamp: %10d)\n", S->clock, minimun_timestamp, maximun_timestamp);  // <<--- random
 }
