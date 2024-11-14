@@ -47,31 +47,31 @@ unsigned sim_mmu(ssystem* S, unsigned virtual_addr, char op) {
   //       Type in the code that simulates the MMU's (hardware)
   //       behaviour in response to a memory access operation
 
-  page = virtual_addr / S->pagsz;
-  offset = virtual_addr % S->pagsz;
+  page   = virtual_addr / S-> pagsz ;	// Quotient 
+  offset = virtual_addr % S-> pagsz ;	// Reminder
 
-  if (page <0 || page >= S->numpags) {
-    S->numillegalrefs++; // References out of range
-    return ~0U; // Return invalid physical 0xFFF..F
+  if ( page <0 || page >= S->numpags )
+  {
+    S -> numillegalrefs++;  // References out of range 
+    return ~0U;	// Return invalid physical 0xFFF..F
   }
-
-  if (!S->pgt[page].present) {
-    // Not present: trigger page fault exception
+  if (! S->pgt[page].present )
+    // Not present: trigger page fault exception 
     handle_page_fault(S, virtual_addr);
-  }
 
   // Now it is present
-  frame = S->pgt[page].frame;
-  physical_addr = frame * S->pagsz + offset;
+  frame = S->pgt[page].frame ;	
+  physical_addr = frame*S->pagsz+offset;
 
-  reference_page(S, page, op);
+  reference_page (S, page, op);
 
-  if (S->detailed)
-    printf("\t %c %u==P %d(M %d)+ %d\n", op, virtual_addr, page,
-           S->pgt[page].modified, offset);
+  if (S->detailed) {
+    printf ("\t %c %u==P %d(M %d)+ %d\n", op, virtual_addr, page, frame, offset);
+  }
 
   return physical_addr;
 }
+
 
 void reference_page(ssystem* S, int page, char op) {
   if (op == 'R') {              // If it's a read,
@@ -91,25 +91,25 @@ void handle_page_fault(ssystem* S, unsigned virtual_addr) {
   //       Type in the code that simulates the Operating
   //       System's response to a page fault trap
   
-  S->numpagefaults++;
-  page = virtual_addr / S->pagsz;
+  S->numpagefaults ++;
+  page = virtual_addr / S-> pagsz;
   if (S->detailed) {
-	  printf ("@ PAGE_FAULT in P %d!\n", page);
+    printf ("@ PAGE_FAULT in P %d!\n", page);
   }
-
-  if(S->listfree != -1){
+  if (S->listfree != -1) {
     // There are free frames
     last = S->listfree;
     frame = S->frt[last].next;
-    if (frame == last){
-      // Then, this is the last one left
+    if (frame==last) {
+      // Then, this is the last one left.
       S->listfree = -1;
     } else {
-      // Otherwise, bypash
-      S->frt[last].next = S->frt[frame].next;
+      // Otherwise, bypass
+      S->frt[last].next = S->frt[frame].next;			
     }
-  }else{
-    // There are no free frames
+    occupy_free_frame(S, frame, page);
+  } else {
+    // There are not free frames
     victim = choose_page_to_be_replaced(S);
     replace_page(S, victim, page);
   }
