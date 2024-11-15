@@ -212,7 +212,7 @@ void print_page_table(ssystem* S) {
 
   for (p = 0; p < S->numpags; p++)
     if (S->pgt[p].present)
-      printf("%8d   %6d     %8d   %6d\n", p, S->pgt[p].present, S->pgt[p].frame,
+      printf("%8d   %6d     %8d   %6d %6d\n", p, S->pgt[p].present, S->pgt[p].frame,
              S->pgt[p].modified, S->pgt[p].referenced);
     else
       printf("%8d   %6d     %8s   %6s\n", p, S->pgt[p].present, "-", "-");
